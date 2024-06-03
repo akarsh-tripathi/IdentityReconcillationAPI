@@ -17,57 +17,63 @@ from IdentityAPP.tasks import updateDBIfIdentityExists
 @api_view(['POST'])
 def IdentityView(request):
     serializer = ContactSerializer(data=request.data)
+   
     if serializer.is_valid():
         try:
             emailRecord = ContactModel.objects.filter(email=request.data["email"])
             phoneRecord = ContactModel.objects.filter(phonenumber=request.data["phonenumber"])
-            if emailRecord.exists() or phoneRecord.exists():
-                ContactModel.objects.create(
-                    phonenumber=request.data["phonenumber"],
-                    email=request.data["email"],
-                    linkedId=emailRecord[0].id if (emailRecord[0].id is not None) else phoneRecord[0].id,
-                    linkPrecedence='secondary'
-                )
-                print("THE FIRST BLOCK")
-                return Response([serializer.data,"THE FIRST BLOCK"], status=status.HTTP_201_CREATED)
-            if(emailRecord.exists() and phoneRecord.exists()):
-                contactsMerged = (emailRecord | phoneRecord).order_by('createdAt')
-                if contactsMerged>1:
-                    firstContact = contactsMerged[0]
-                    for contactIter in contactsMerged[1:]:
-                        contactIter.linkedId = firstContact.id
-                        contactIter.linkPrecedence = 'secondary'
-                        contactIter.save()
-                print("THE BOTH BLOCK")
-                return Response({serializer.data,"THE BOTH BLOCK"}, status=status.HTTP_201_CREATED)
-            else:
-                serializer.save()
-                print("THE ELSE BLOCK")
-                return Response({serializer.data,"THE ELSE BLOCK"}, status=status.HTTP_201_CREATED)
+            print("Here -0")
+            #CornerCase Check 
+            duplicateEntry = ContactModel.objects.filter(email=request.data['email'], phonenumber = request.data['phonenumber'])
+            print("LOG-D ",duplicateEntry.exists())
+
+            if not duplicateEntry.exists():
+                if emailRecord.exists() or phoneRecord.exists():
+                    print(emailRecord.first().values('phonenumber'))
+                    #CornerCase Check 
+                    print("Here -1")
+                    ContactModel.objects.create(
+                        phonenumber=request.data["phonenumber"],
+                        email=request.data["email"],
+                        linkedId=emailRecord[0].id if (emailRecord[0].id is not None) else phoneRecord[0].id,
+                        linkPrecedence='secondary'
+                    )
+                    
+                    print("THE FIRST BLOCK")
+                    return Response([serializer.data,"THE FIRST BLOCK"], status=status.HTTP_201_CREATED)
+                if(emailRecord.exists() and phoneRecord.exists()):
+                    contactsMerged = (emailRecord | phoneRecord).order_by('createdAt')
+                    print("Here -2")
+                    if contactsMerged>1:
+                        firstContact = contactsMerged[0]
+                        for contactIter in contactsMerged[1:]:
+                            contactIter.linkedId = firstContact.id
+                            contactIter.linkPrecedence = 'secondary'
+                            contactIter.save()
+                    print("THE BOTH BLOCK")
+                    return Response({serializer.data,"THE BOTH BLOCK"}, status=status.HTTP_201_CREATED)
+                else:
+                    print("Here -3")
+                    serializer.save()
+                    print("THE ELSE BLOCK")
+                    return Response({serializer.data,"THE ELSE BLOCK"}, status=status.HTTP_201_CREATED)
         except: 
+            print("Here -4")
             print("THE EXCEPT BLOCK")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-
-        #Print Out Result 
-
         finally:
+            #Print Out Result 
             FindRecord = ContactModel.objects.filter(Q(email=request.data["email"])| Q(phonenumber=request.data["phonenumber"])).order_by('createdAt')
+            print("Here -5")
             return Response({"Contact":
                             {
-                                "primaryContatctId":FindRecord[0].id,
+                                "primaryContatctId":FindRecord[0].id if(FindRecord.count()>0) else None,
                                 "emails": FindRecord.values_list('email', flat=True).distinct(),
                                 "phoneNumbers": FindRecord.values_list('phonenumber', flat=True).distinct(),
-                                "secondaryContactIds": [contact.id for contact in FindRecord[1:]]
+                                "secondaryContactIds":[contact.id for contact in FindRecord[1:]] if FindRecord.count() > 1 else []
                             }}, status=status.HTTP_200_OK)
-        # {
-        # "contact":{
-        # "primaryContatctId": 11,
-        # "emails": ["george@hillvalley.edu","biffsucks@hillvalley.edu"]
-        # "phoneNumbers": ["919191","717171"]
-        # "secondaryContactIds": [27]
-        # }
-        # }
+
 
     else:
         print("The Else Serializer Block")
