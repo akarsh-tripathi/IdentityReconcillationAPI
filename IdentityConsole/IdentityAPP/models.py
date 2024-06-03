@@ -1,14 +1,15 @@
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 
 class ContactModel(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    phonenumber = models.IntegerField(null=True, max_length=10)
+    phonenumber = models.CharField(null=True, max_length=10)
     email = models.EmailField()
     linkedId = models.IntegerField(null=True)
     linkPrecedence = models.CharField(max_length=10, default="primary")
-    createdAt = models.DateTimeField(auto_now_add=True)
+    createdAt = models.DateTimeField(default=timezone.now())
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(null=True)
 
