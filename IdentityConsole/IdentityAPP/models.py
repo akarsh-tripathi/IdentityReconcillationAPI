@@ -3,11 +3,11 @@ from django.db import models
 # Create your models here.
 
 class ContactModel(models.Model):
-    id = models.AutoField(primary_key=True, increament=True)
-    phonenumber = models.IntegerField(null=True, min_length=10, max_length=10)
+    id = models.AutoField(primary_key=True, unique=True)
+    phonenumber = models.IntegerField(null=True, max_length=10)
     email = models.EmailField()
     linkedId = models.IntegerField(null=True)
-    linkPrecedence = models.CharField(max_length=10)
+    linkPrecedence = models.CharField(max_length=10, default="primary")
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(null=True)
