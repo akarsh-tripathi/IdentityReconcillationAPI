@@ -22,10 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-7z=6!z9&#428vke5^_@k5cxokar9^-_lxy78s^fri^&3$l7m0g'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+CELERY_BROKER_URL = 'redis://0.0.0.0:6379'
+CELERY_RESULT_BACKEND = 'redis://0.0.0.0:6379'
+
+ALLOWED_HOSTS = ['*',]
 
 
 # Application definition
