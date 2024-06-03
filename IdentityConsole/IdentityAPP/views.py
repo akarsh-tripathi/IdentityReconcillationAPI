@@ -49,7 +49,25 @@ def IdentityView(request):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-        
+        #Print Out Result 
+
+        finally:
+            FindRecord = ContactModel.objects.filter(Q(email=request.data["email"])| Q(phonenumber=request.data["phonenumber"])).order_by('createdAt')
+            return Response({"Contact":
+                            {
+                                "primaryContatctId":FindRecord[0].id,
+                                "emails": FindRecord.values_list('email', flat=True).distinct(),
+                                "phoneNumbers": FindRecord.values_list('phonenumber', flat=True).distinct(),
+                                "secondaryContactIds": [contact.id for contact in FindRecord[1:]]
+                            }}, status=status.HTTP_200_OK)
+        # {
+        # "contact":{
+        # "primaryContatctId": 11,
+        # "emails": ["george@hillvalley.edu","biffsucks@hillvalley.edu"]
+        # "phoneNumbers": ["919191","717171"]
+        # "secondaryContactIds": [27]
+        # }
+        # }
 
     else:
         print("The Else Serializer Block")
