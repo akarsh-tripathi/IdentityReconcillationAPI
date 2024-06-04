@@ -28,11 +28,11 @@ hide_streamlit_style = '''
 '''
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-Backend_URL =os.environ("SERVER_URL") if(os.environ("SERVER_URL")) else "http://localhost:8000/" 
+Backend_URL =os.environ["SERVER_URL"] if(os.environ["SERVER_URL"]) else "http://localhost:8000/" 
 
 # UI
 st.title(
-    'Identity Console [![GitHub (Source Code )](https://img.shields.io/github/v/release/claromes/waybacktweets?include_prereleases)](https://github.com/claromes/waybacktweets/releases)',
+    'Identity Console',
     anchor=False)
 st.write(
     'Reconcillation API to find the Doc in Grandiose project'
