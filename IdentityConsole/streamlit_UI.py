@@ -1,5 +1,5 @@
 import datetime
-import json
+import os
 import streamlit as st
 import requests
 # import streamlit_scrollable_textbox as stx
@@ -28,7 +28,7 @@ hide_streamlit_style = '''
 '''
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-Backend_URL ="http://localhost:8000/" 
+Backend_URL =os.environ("SERVER_URL") if(os.environ("SERVER_URL")) else "http://localhost:8000/" 
 
 # UI
 st.title(
