@@ -8,79 +8,28 @@ from rest_framework import status
 
 from IdentityAPP.models import ContactModel
 from IdentityAPP.serializer import ContactSerializer
-from IdentityAPP.tasks import updateDBIfIdentityExists
-
-# Create your views here.
 
 
-
-@api_view(['POST'])
+@api_view(['POST'])   
 def IdentityView(request):
-    serializer = ContactSerializer(data=request.data)
-   
-    if serializer.is_valid():
-        try:
-            emailRecord = ContactModel.objects.filter(email=request.data["email"])
-            phoneRecord = ContactModel.objects.filter(phonenumber=request.data["phonenumber"])
-            print("Here -0")
-            #CornerCase Check 
-            duplicateEntry = ContactModel.objects.filter(email=request.data['email'], phonenumber = request.data['phonenumber'])
-            print("LOG-D ",duplicateEntry.exists())
 
-            if not duplicateEntry.exists():
-                if emailRecord.exists() or phoneRecord.exists():
-                    print(emailRecord.first().values('phonenumber'))
-                    #CornerCase Check 
-                    print("Here -1")
-                    ContactModel.objects.create(
-                        phonenumber=request.data["phonenumber"],
-                        email=request.data["email"],
-                        linkedId=emailRecord[0].id if (emailRecord[0].id is not None) else phoneRecord[0].id,
-                        linkPrecedence='secondary'
-                    )
-                    
-                    print("THE FIRST BLOCK")
-                    return Response([serializer.data,"THE FIRST BLOCK"], status=status.HTTP_201_CREATED)
-                if(emailRecord.exists() and phoneRecord.exists()):
-                    contactsMerged = (emailRecord | phoneRecord).order_by('createdAt')
-                    print("Here -2")
-                    if contactsMerged>1:
-                        firstContact = contactsMerged[0]
-                        for contactIter in contactsMerged[1:]:
-                            contactIter.linkedId = firstContact.id
-                            contactIter.linkPrecedence = 'secondary'
-                            contactIter.save()
-                    print("THE BOTH BLOCK")
-                    return Response({serializer.data,"THE BOTH BLOCK"}, status=status.HTTP_201_CREATED)
-                else:
-                    print("Here -3")
-                    serializer.save()
-                    print("THE ELSE BLOCK")
-                    return Response({serializer.data,"THE ELSE BLOCK"}, status=status.HTTP_201_CREATED)
-        except: 
-            print("Here -4")
-            print("THE EXCEPT BLOCK")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        finally:
-            #Print Out Result 
-            FindRecord = ContactModel.objects.filter(Q(email=request.data["email"])| Q(phonenumber=request.data["phonenumber"])).order_by('createdAt')
-            print("Here -5")
-            return Response({"Contact":
-                            {
-                                "primaryContatctId":FindRecord[0].id if(FindRecord.count()>0) else None,
-                                "emails": FindRecord.values_list('email', flat=True).distinct(),
-                                "phoneNumbers": FindRecord.values_list('phonenumber', flat=True).distinct(),
-                                "secondaryContactIds":[contact.id for contact in FindRecord[1:]] if FindRecord.count() > 1 else []
-                            }}, status=status.HTTP_200_OK)
+      
+    #Checking For Duplicates as we have to Insert New Contacts if not present
+    duplicateEntry = ContactModel.objects.filter(email=request.data['email'], phonenumber = request.data['phonenumber'])
 
-
-    else:
-        print("The Else Serializer Block")
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if(duplicateEntry.count()==0):
+        #Mapping the contacts based on requiremnets
+        mapNewContacts({'email':request.data["email"],'phonenumber':request.data["phonenumber"]})
     
-
-
+    FindRecord = ContactModel.objects.filter(Q(email=request.data["email"])| Q(phonenumber=request.data["phonenumber"])).order_by('createdAt')
+    return Response({"Contact":
+                    {
+                        "primaryContatctId":FindRecord[0].id if(FindRecord.count()>0) else None,
+                        "emails": FindRecord.values_list('email', flat=True).distinct(),
+                        "phoneNumbers": FindRecord.values_list('phonenumber', flat=True).distinct(),
+                        "secondaryContactIds":[contact.id for contact in FindRecord[1:]] if FindRecord.count() > 1 else []
+                    }}, status=status.HTTP_200_OK)
+    
 
 
 @api_view(['GET'])
@@ -93,19 +42,58 @@ def Test_getAllData(request):
 def Test_createData(request):
     serializer = ContactSerializer(data=request.data)
     if serializer.is_valid():
-        print(request.data["phonenumber"],"  ", request.data["email"])
-        #Shared Task todo 
-        # updateDBIfIdentityExists(request.data)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+       
+        #If Duplicate Entry Exists
+        duplicateEntry = ContactModel.objects.filter(email=request.data['email'], phonenumber = request.data['phonenumber'])
+        print("LOG-D ",not duplicateEntry.exists())
+        if(duplicateEntry.exists()):
+            return Response({"message":"Duplicate Entry"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+                response = mapNewContacts({'email':request.data["email"],'phonenumber':request.data["phonenumber"]})
+                if response == "Error Occured":
+                    return Response({"message":"Error Occured"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"data":"Done","message":"Contact Created"}, status=status.HTTP_201_CREATED)
+        except: 
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-# {
-# "contact":{
-# "primaryContatctId": number,
-# "emails": string[], // first element being email of primary contact 
-# "phoneNumbers": string[], // first element being phoneNumber of primary conta
-# "secondaryContactIds": number[] // Array of all Contact IDs that are "seconda
-# }
-# }
+def mapNewContacts(data):
+    print(data["email"],data["phonenumber"])
+    try:
+        # Filtering records bsased on Email & Phonenumbers 
+        emailRecord = ContactModel.objects.filter(email=data["email"])
+        phoneRecord = ContactModel.objects.filter(phonenumber=data["phonenumber"])
+        
+        # Case1: If Email or Phone Exists
+        if emailRecord.exists() or phoneRecord.exists():
+            print(emailRecord.values_list('phonenumber'))
+            print(phoneRecord.values_list('phonenumber'))
+
+            ContactModel.objects.create(
+                phonenumber=data["phonenumber"],
+                email=data["email"],
+                linkedId=emailRecord[0].id if (emailRecord.count()!=0) else phoneRecord[0].id,
+                linkPrecedence="secondary"
+            )
+        # Case2 : If Both Email & Phone Exists
+        if(emailRecord.exists() and phoneRecord.exists()):
+            contactsMerged = (emailRecord | phoneRecord).order_by('createdAt')
+            print("Here -2")
+            if contactsMerged.count()>1:
+                firstContact = contactsMerged[0]
+                for contactIter in contactsMerged[1:]:
+                    contactIter.linkedId = firstContact.id
+                    contactIter.linkPrecedence = "secondary"
+                    contactIter.save()
+        else:
+            # Case 3: It none exists we need new methods
+            ContactModel.objects.create(
+                phonenumber=data["phonenumber"],
+                email=data["email"]
+            )
+    except: 
+        # Exception Block
+        return "Error Occured"

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class ContactModel(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    phonenumber = models.CharField(null=True, max_length=10)
+    phonenumber = models.IntegerField(null=True, max_length=10)
     email = models.EmailField()
     linkedId = models.IntegerField(null=True)
     linkPrecedence = models.CharField(max_length=10, default="primary")
