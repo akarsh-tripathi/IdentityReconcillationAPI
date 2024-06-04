@@ -41,6 +41,7 @@ def Test_getAllData(request):
 @api_view(['POST'])
 def Test_createData(request):
     serializer = ContactSerializer(data=request.data)
+    print("LOG-D ", request.data)
     if serializer.is_valid():
        
         #If Duplicate Entry Exists
