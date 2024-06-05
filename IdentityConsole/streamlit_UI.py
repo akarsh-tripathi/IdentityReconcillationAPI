@@ -29,7 +29,7 @@ hide_streamlit_style = '''
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 Backend_URL =os.environ["SERVER_URL"] if(os.environ["SERVER_URL"]) else "http://localhost:8000/" 
-
+# Backend_URL = "http://localhost:8000/"
 
 # UI
 st.title(
@@ -43,18 +43,17 @@ st.text("You are pinging to /api/identity Endpoint")
 
 email_input = st.text_input('Email', placeholder='akarshtripathi.work@gmail.com')
 phone_number_input = st.text_input('Phone Number', placeholder='9971234477')
+st.text("Before Querying, Run the Server")
 
 col1, col2 = st.columns([1,1])
-
 with col1:
+    
     st.link_button("Run the Server First", Backend_URL)
 
 with col2:
     button = st.button("Get Current DB State")
     if button:
         currentDatabaseState = requests.get(Backend_URL + "api/test/getAllData/").json()
-        if(currentDatabaseState.status_code != 200):
-            st.write("Error in fetching data, Run Server and try again")
         st.write("Current Database State")
         with st.container(height=500):
             st.write(currentDatabaseState)
