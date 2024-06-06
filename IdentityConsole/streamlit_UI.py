@@ -52,11 +52,12 @@ with col1:
 
 with col2:
     button = st.button("Get Current DB State")
-    if button:
-        currentDatabaseState = requests.get(Backend_URL + "api/test/getAllData/").json()
-        st.write("Current Database State")
-        with st.container(height=500):
-            st.write(currentDatabaseState)
+
+if button:
+    currentDatabaseState = requests.get(Backend_URL + "api/test/getAllData/").json()
+    st.write("Current Database State")
+    with st.container(height=500):
+        st.write(currentDatabaseState)
 
 
 
